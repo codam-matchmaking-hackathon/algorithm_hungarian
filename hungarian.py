@@ -10,13 +10,13 @@ def hungarian_algorithm(mat):
 	#Step 1 - Every column and every row subtract its internal minimum
 	for row_num in range(mat.shape[0]): 
 		cur_mat[row_num] -= np.nanmin(cur_mat[row_num])
-    
+		
 	for col_num in range(mat.shape[1]): 
 		cur_mat[:,col_num] -= np.nanmin(cur_mat[:,col_num])
 	
 	return cur_mat
 
-def min_zero_row(zero_mat, mark_zero, seats_left):
+def min_zero_row(zero_mat, mark_zero):
 	#Find the row
 	min_row = [99999, -1]
 
@@ -28,16 +28,55 @@ def min_zero_row(zero_mat, mark_zero, seats_left):
 		if zero_mat[min_row[1]][col_num] == True:
 			zero_index = col_num
 
-	if seats_left[zero_index] > 0:
-		mark_zero.append([min_row[1], zero_index])
-	zero_mat[min_row[1], :] = np.nan
-	if seats_left[zero_index] == 0:
-		zero_mat[:, zero_index] = np.nan
-	else:
-		seats_left[zero_index] -= 1
+	mark_zero.append((min_row[1], zero_index))
+	zero_mat[min_row[1], :] = False
+	zero_mat[:, zero_index] = False
 
-def extract_col(row):
-	return row[1]
+
+def mark_matrix(mat):
+
+	#Transform the matrix to boolean matrix(0 = True, others = False)
+	cur_mat = mat
+	zero_bool_mat = (cur_mat == 0)
+	zero_bool_mat_copy = zero_bool_mat.copy()
+
+	#Recording possible answer positions by marked_zero
+	marked_zero = []
+	while (True in zero_bool_mat_copy):
+		min_zero_row(zero_bool_mat_copy, marked_zero)
+
+	#Recording the row and column indexes seperately.
+	marked_zero_row = []
+	marked_zero_col = []
+	for i in range(len(marked_zero)):
+		marked_zero_row.append(marked_zero[i][0])
+		marked_zero_col.append(marked_zero[i][1])
+	#step 2-2-1
+	non_marked_row = list(set(range(cur_mat.shape[0])) - set(marked_zero_row))
+		
+	marked_cols = []
+	check_switch = True
+	while check_switch:
+		check_switch = False
+		for i in range(len(non_marked_row)):
+			row_array = zero_bool_mat[non_marked_row[i], :]
+			for j in range(row_array.shape[0]):
+				#step 2-2-2
+				if row_array[j] == True and j not in marked_cols:
+					#step 2-2-3
+					marked_cols.append(j)
+					check_switch = True
+
+		for row_num, col_num in marked_zero:
+			#step 2-2-4
+			if row_num not in non_marked_row and col_num in marked_cols:
+				#step 2-2-5
+				non_marked_row.append(row_num)
+				check_switch = True
+	#step 2-2-6
+	marked_rows = list(set(range(mat.shape[0])) - set(non_marked_row))
+		
+	return(marked_zero, marked_rows, marked_cols)
 
 def main():
 	data_set=[]
@@ -56,93 +95,16 @@ def main():
 	while seats_left.count(0) != cols :
 
 		cur_mat = hungarian_algorithm(mat)
-		print(cur_mat)
-		print(seats_left)
-
-		bool_mat = (cur_mat == 0)
-
-		parings=[]
-		for i in range(rows):
-			min_zero_row(bool_mat, parings, seats_left)
-
-		# res = -1
-		# index = -1
-		# collection=[]*cols
-		# for i in range(cols):
-		# 	test = np.array(parings)
-		# 	print(test[:,1])
-		# 	print(sum(test[:,1] == i))
-		# 	if res < sum(np.array(parings)[:,1] == i):
-		# 		res = i
-		# for i in range(len(parings)):
-		# 	collection[parings[i][1]].append(parings[i][0])
-		# print("collection =", collection)
 		
-		#set students that are have a seat and companies that have no seats left
-		for i in range(len(parings)):
-			mat[parings[i][0], :] = np.nan
-			if seats_left[parings[i][1]] == 0:
-				mat[:, parings[i][1]] = np.nan
-		print(parings)
+		print(cur_mat)
+
+		marked_zero, marked_rows, marked_cols = mark_matrix(cur_mat)
+		print(marked_zero)
+		print(marked_rows)
+		print(marked_cols)
+		
 		input("____________________________")
 	print(mat)
-	# for r in range(rounds):
-	# 	# calculate demand weight for each of the companies
-	# 	weights=[0]*cols
-	# 	for row in range(rows):
-	# 		for col in range(cols):
-	# 			weights[col] += data_set2[row][col]
-
-	# 	# adjust individual cost with the demand weight
-	# 	data_set_round = copy.deepcopy(data_set2)
-	# 	for row in range(rows):
-	# 		for col in range(cols):
-	# 			data_set_round[row][col] *= weights[col]
-		
-	# 	# subtract min from rows
-	# 	for row in range(rows):
-	# 		x = min(data_set_round[row])
-	# 		for col in range(cols):
-	# 			data_set_round[row][col] -= x
-
-	# 	company_chairs_available=[chairs]*cols
-	# 	while company_chairs_available.count(0) != len(company_chairs_available):
-	# 	# 	subtract min from cols
-	# 		trans_data = [list(x) for x in zip(*data_set_round)]
-	# 		for col in range(cols):
-	# 			x = min(trans_data[col])
-	# 			for row in range(rows):
-	# 				trans_data[col][row] -= x
-
-	# 		#count how many have this company as best suited
-	# 		company_chairs=[0]*cols
-	# 		for col in range(cols):
-	# 			company_chairs[col] = trans_data[col].count(0)
-	# 		data_set_round = [list(x) for x in zip(*trans_data)]
-
-	# 		# find unique zeros in rows which are for companies that still have seats available
-	# 		for row in range(rows):
-	# 			count = 0
-	# 			for col in range(cols):
-	# 				if data_set_round[row][col] == 0 and company_chairs[col] < company_chairs_available[col]:
-	# 					count += 1
-	# 			if count == 1:
-	# 				for col in range(cols):
-	# 					if data_set_round[row][col] == 0 and company_chairs[col] < company_chairs_available[col]:
-	# 						print(row +1, col +1)
-	# 						company_chairs_available[col] -= 1
-	# 						for i in range(cols):
-	# 							data_set_round[row][i] = 100
-
-	# 		for col in range (cols):
-	# 			if company_chairs_available[col] == 0:
-	# 				for row in range(rows):
-	# 					data_set_round[row][col] = 100
-			
-	# 		for row in range(rows):
-	# 			print(data_set_round[row])
-	# 		input("press something")
-	# 	print(company_chairs_available)
 
 if __name__ == "__main__":
 	main()
