@@ -97,6 +97,9 @@ def adjust_matrix(mat, cover_rows, cover_cols):
 			cur_mat[cover_rows[row], cover_cols[col]] = cur_mat[cover_rows[row], cover_cols[col]] + min_num
 	return cur_mat
 
+def tie_breaker(ans_pos):
+	return ans_pos
+
 def hungarian_algorithm(mat, dim): 
 
 
@@ -117,8 +120,7 @@ def hungarian_algorithm(mat, dim):
 
 		zero_count = len(marked_rows) + len(marked_cols)
 		if (old_count == zero_count):
-			print(cur_mat)
-			input()
+			return tie_breaker(ans_pos)
 			#add arbitrary tie breaker
 		old_count = zero_count
 		if zero_count < dim:
@@ -144,7 +146,7 @@ def main():
 
 	#The matrix who you want to find the minimum sum
 	data_set=[]
-	students, companies, rounds, chairs=18,3,4,4
+	students, companies, rounds, chairs=10,4,4,2
 	for s in range(students):
 		student=[]
 		while len(student) != companies * chairs:
@@ -155,12 +157,10 @@ def main():
 		data_set.append(student)
 	
 	cost_matrix = np.array(data_set, dtype=float)
-
-	for i in range(cost_matrix.shape[0]):
-		r = random.randint(1,4)
-		for j in range(0, cost_matrix.shape[1], chairs):
-			cost_matrix[i][j] *= r
-
+	for i in range(cost_matrix.shape[1]):
+		col_val = sum(cost_matrix[:,i])
+		for j in range(cost_matrix.shape[0]):
+			cost_matrix[j][i] *= col_val
 	dummy_count = cost_matrix.shape[0] - cost_matrix.shape[1]
 
 	print(cost_matrix)
@@ -182,6 +182,12 @@ def main():
 					for k in range(chairs):
 						cost_matrix[i][int(j/chairs)*chairs +k] = np.nan#for loop for each chair
 					assigned_mask[i][j] = round_i +1
+		for i in range(companies):
+			tot = sum(sum(ans_mat[:,i*chairs:i*chairs+chairs] >= True))
+			if tot != chairs:
+				print(i, round_i, tot)
+
+					
 
 	#remove excess collumns used for calculations
 	ans_mat = assigned_mask
@@ -195,9 +201,7 @@ def main():
 			ans_mat = np.delete(ans_mat, i -j -1, 1)
 		# print(i)
 	for i in range(companies):
-		tot = 0
-		for j in range(students):
-			tot += ans_mat[j][i] >= True
+		tot = sum(ans_mat[:,i] >= True)
 		print(tot)
 	# Show the result
 	print(f"Linear Assignment problem result: {ans:.0f}\n{ans_mat}")
